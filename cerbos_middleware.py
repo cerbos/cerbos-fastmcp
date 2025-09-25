@@ -78,7 +78,6 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="missing_principal",
                 )
             )
-            
 
         message = context.message
         tool_name = message.name
@@ -105,7 +104,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 },
             )
             raise McpError(
-                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
             )
 
         logger.debug(
@@ -125,7 +125,7 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="missing_principal",
                 )
             )
-        
+
         authorized_tools = []
         for tool in original_result:
             action = f"list::{tool.name}"
@@ -149,7 +149,6 @@ class CerbosAuthorizationMiddleware(Middleware):
                     },
                 )
         return authorized_tools
-    
 
     async def _is_allowed(
         self, action: str, principal: Principal, resource: Resource
@@ -179,7 +178,8 @@ class CerbosAuthorizationMiddleware(Middleware):
             return self._client
 
         if not self._owns_client:
-            raise RuntimeError("Cerbos client was provided but is not available")
+            raise RuntimeError(
+                "Cerbos client was provided but is not available")
 
         async with self._client_lock:
             if self._client is None:
@@ -194,12 +194,11 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def _resolve_principal(
         self, context: MiddlewareContext[CallToolRequestParams]
     ) -> Optional[Principal]:
-        
+
         token: AccessToken | None = get_access_token()
 
         # dump token for debugging
         logger.debug(f"Access token: {token}")
-        
 
         if token is None:
             raise McpError(
@@ -209,7 +208,7 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="principal_builder_error - no access token available",
                 )
             )
-        
+
         try:
             principal = self._principal_builder(token)
             if inspect.isawaitable(principal):
@@ -241,13 +240,6 @@ def _resource_to_proto(resource: Resource) -> engine_pb2.Resource:
     proto = engine_pb2.Resource()
     ParseDict(resource.to_dict(), proto)
     return proto
-
-
-def _env_flag(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.lower() in {"1", "true", "yes", "on"}
 
 
 def _env_tls(name: str, default: bool | str) -> bool | str:
