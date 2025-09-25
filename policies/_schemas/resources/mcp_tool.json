@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "mcp_tool",
+  "description": "Schema for mcp_tool attributes",
+  "properties": {
+    "active": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

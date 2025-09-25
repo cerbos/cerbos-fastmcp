@@ -1,17 +1,42 @@
 # yaml-language-server: $schema=https://api.cerbos.dev/latest/cerbos/policy/v1/Policy.schema.json
 ---
 apiVersion: api.cerbos.dev/v1
+description: Demo MCP Server
 resourcePolicy:
-  resource: "mcp_tool"
-  version: "default"
+  resource: mcp_tool
+  version: default
   rules:
-    - actions: ["list::greet", "call::greet"]
-      effect: EFFECT_ALLOW
+    - actions:
+        - list::greet
+        - call:greet
+        - list::goodbye
+        - call::goodbye
       roles:
-        - "admin"
-        - "sales"
-
-    - actions: ["list::goodbye", "call::goodbye"]
+        - admin
       effect: EFFECT_ALLOW
+    - actions:
+        - list::greet
+        - call:greet
       roles:
-        - "admin"
+        - sales
+      effect: EFFECT_ALLOW
+    - actions:
+        - list::goodbye
+        - call::goodbye
+      derivedRoles:
+        - SALES_EMEA
+      effect: EFFECT_ALLOW
+  schemas:
+    principalSchema:
+      ref: cerbos:///principal.json
+    resourceSchema:
+      ref: cerbos:///resources/mcp_tool.json
+  constants:
+    local:
+      meta::availableActions:
+        - list::greet
+        - call:greet
+        - list::goodbye
+        - call::goodbye
+  importDerivedRoles:
+    - common

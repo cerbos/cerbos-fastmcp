@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "principal",
+  "description": "Schema for principal attributes",
+  "properties": {
+    "department": {
+      "type": "string",
+      "description": ""
+    },
+    "region": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required": [
+    "department"
+  ],
+  "additionalProperties": false
+}
