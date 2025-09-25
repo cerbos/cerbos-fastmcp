@@ -5,6 +5,8 @@ description: Demo MCP Server
 resourcePolicy:
   resource: mcp_tool
   version: default
+  importDerivedRoles:
+    - common
   rules:
     - actions:
         - list::greet
@@ -38,5 +40,3 @@ resourcePolicy:
         - call:greet
         - list::goodbye
         - call::goodbye
-  importDerivedRoles:
-    - common
