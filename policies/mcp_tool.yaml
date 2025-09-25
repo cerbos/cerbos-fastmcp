@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://api.cerbos.dev/latest/cerbos/policy/v1/Policy.schema.json
+---
+apiVersion: api.cerbos.dev/v1
+resourcePolicy:
+  resource: "mcp_tool"
+  version: "default"
+  rules:
+    - actions: ["list::greet", "call::greet"]
+      effect: EFFECT_ALLOW
+      roles:
+        - "admin"
+        - "sales"
+
+    - actions: ["list::goodbye", "call::goodbye"]
+      effect: EFFECT_ALLOW
+      roles:
+        - "admin"
