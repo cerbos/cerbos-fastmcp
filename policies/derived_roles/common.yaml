@@ -5,9 +5,9 @@ description: Derived roles for common
 derivedRoles:
   name: common
   definitions:
-    - name: SALES_EMEA
+    - name: HR_APAC
       parentRoles:
-        - SALES
+        - HR
       condition:
         match:
           expr: P.attr.region=="EMEA"

@@ -5,8 +5,6 @@ description: Demo MCP Server
 resourcePolicy:
   resource: mcp_server
   version: default
-  importDerivedRoles:
-    - common
   rules:
     - actions:
         - resources/list
@@ -14,23 +12,14 @@ resourcePolicy:
         - tools/list
         - tools/list::greet
         - tools/call::greet
+        - tools/list::admin_tool
+        - tools/call::admin_tool
         - tools/list::get_sales_data
         - tools/call::get_sales_data
         - tools/list::get_engineering_data
         - tools/call::get_engineering_data
-        - tools/list::admin_tool
-        - tools/call::admin_tool
       roles:
         - ADMIN
-      effect: EFFECT_ALLOW
-    - actions:
-        - tools/list
-        - tools/call::greet
-        - tools/list::greet
-        - tools/list::get_hr_records
-        - tools/call::get_hr_records
-      roles:
-        - HR
       effect: EFFECT_ALLOW
     - actions:
         - prompts/list
@@ -42,13 +31,26 @@ resourcePolicy:
         - SALES
       effect: EFFECT_ALLOW
     - actions:
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::get_hr_records
+        - tools/call::get_hr_records
+      roles:
+        - HR
+      effect: EFFECT_ALLOW
+    - actions:
         - tools/call::get_sales_data
-      derivedRoles:
-        - SALES_EMEA
+      roles:
+        - SALES
       effect: EFFECT_ALLOW
       condition:
         match:
-          expr: R.attr.arguments.region=="EMEA"
+          expr: R.attr.arguments.region==P.attr.region
+      output:
+        when:
+          ruleActivated: '"User requested HR records from their own region"'
+          conditionNotMet: '"User requested records from a different region"'
   schemas:
     principalSchema:
       ref: cerbos:///principal.json
