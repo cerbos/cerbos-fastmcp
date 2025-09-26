@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import logging
+
 import os
 from typing import Any, Awaitable, Callable, Optional
 
 from cerbos.engine.v1 import engine_pb2
 from cerbos.sdk.grpc.client import AsyncCerbosClient
 from cerbos.sdk.model import Principal, Resource
-import fastmcp
+from fastmcp.utilities import logging
 from fastmcp.exceptions import McpError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from google.protobuf import struct_pb2
@@ -19,7 +19,7 @@ from mcp.types import CallToolRequestParams, ErrorData
 from fastmcp.server.dependencies import get_access_token, AccessToken
 
 
-logger = fastmcp.utilities.logging.get_logger("cerbos_middleware")
+logger = logging.get_logger("cerbos_middleware")
 
 PrincipalBuilder = Callable[
     [AccessToken],
