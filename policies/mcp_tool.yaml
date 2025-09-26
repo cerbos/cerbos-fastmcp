@@ -5,13 +5,15 @@ description: Demo MCP Server
 resourcePolicy:
   resource: mcp_tool
   version: default
+  importDerivedRoles:
+    - common
   rules:
     - actions:
-        - list::greet
-        - call::greet
         - cmd::list_resources
         - cmd::list_prompts
         - cmd::list_tools
+        - list::greet
+        - call::greet
         - list::get_sales_data
         - call::get_sales_data
         - list::get_engineering_data
@@ -20,6 +22,15 @@ resourcePolicy:
         - call::admin_tool
       roles:
         - admin
+      effect: EFFECT_ALLOW
+    - actions:
+        - list::greet
+        - call::greet
+        - cmd::list_tools
+        - list::get_hr_records
+        - call::get_hr_records
+      roles:
+        - hr
       effect: EFFECT_ALLOW
     - actions:
         - list::greet
@@ -59,5 +70,3 @@ resourcePolicy:
         - call::get_hr_records
         - list::admin_tool
         - call::admin_tool
-  importDerivedRoles:
-    - common
