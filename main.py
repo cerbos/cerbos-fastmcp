@@ -31,6 +31,7 @@ verifier = StaticTokenVerifier(
 
 mcp = FastMCP("Cerbos + FastMCP Example", auth=verifier)
 
+
 def principal_builder(token: AccessToken) -> Principal:
     user_id = token.claims.get("sub", "") if token else None
     if user_id is None:
@@ -51,6 +52,7 @@ def principal_builder(token: AccessToken) -> Principal:
         }
     )
 
+
 mcp.add_middleware(CerbosAuthorizationMiddleware(
     cerbos_host="localhost:3593",
     principal_builder=principal_builder,
@@ -61,9 +63,37 @@ mcp.add_middleware(CerbosAuthorizationMiddleware(
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
-@mcp.tool
-def goodbye(name: str) -> str:
-    return f"Goodbye, {name}!"
+
+@mcp.tool(description="Retrieve sales data")
+def get_sales_data(region: str) -> str:
+    return f"This is the sales data for {region}!"
+
+
+@mcp.tool(description="Retrieve engineering data")
+def get_engineering_data(region: str) -> str:
+    return f"This is the engineering data for {region}!"
+
+
+@mcp.tool(description="Retrieve HR records")
+def get_hr_records(department: Optional[str] = None) -> str:
+    if department:
+        return f"This is the HR records for the {department} department!"
+    return "This is the HR records for all departments!"
+
+
+@mcp.tool(description="Admin only tool")
+def admin_tool() -> str:
+    return "This is an admin only tool!"
+
+
+@mcp.prompt
+def sampleprompt() -> str:
+    return "Sample prompt response."
+
+
+@mcp.resource("prompt://sample")
+def data_resource() -> dict:
+    return {"id": "resource_id", "type": "data", "sensitivity": "high"}
 
 
 if __name__ == "__main__":

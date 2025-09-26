@@ -5,29 +5,39 @@ description: Demo MCP Server
 resourcePolicy:
   resource: mcp_tool
   version: default
-  importDerivedRoles:
-    - common
   rules:
     - actions:
         - list::greet
-        - call:greet
-        - list::goodbye
-        - call::goodbye
+        - call::greet
+        - cmd::list_resources
+        - cmd::list_prompts
+        - cmd::list_tools
+        - list::get_sales_data
+        - call::get_sales_data
+        - list::get_engineering_data
+        - call::get_engineering_data
+        - list::admin_tool
+        - call::admin_tool
       roles:
         - admin
       effect: EFFECT_ALLOW
     - actions:
         - list::greet
-        - call:greet
+        - call::greet
+        - cmd::list_prompts
+        - cmd::list_tools
+        - list::get_sales_data
       roles:
         - sales
       effect: EFFECT_ALLOW
     - actions:
-        - list::goodbye
-        - call::goodbye
+        - call::get_sales_data
       derivedRoles:
         - SALES_EMEA
       effect: EFFECT_ALLOW
+      condition:
+        match:
+          expr: R.attr.arguments.region=="emea"
   schemas:
     principalSchema:
       ref: cerbos:///principal.json
@@ -37,6 +47,17 @@ resourcePolicy:
     local:
       meta::availableActions:
         - list::greet
-        - call:greet
-        - list::goodbye
-        - call::goodbye
+        - call::greet
+        - cmd::list_resources
+        - cmd::list_prompts
+        - cmd::list_tools
+        - list::get_sales_data
+        - call::get_sales_data
+        - list::get_engineering_data
+        - call::get_engineering_data
+        - list::get_hr_records
+        - call::get_hr_records
+        - list::admin_tool
+        - call::admin_tool
+  importDerivedRoles:
+    - common

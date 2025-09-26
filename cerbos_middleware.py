@@ -11,14 +11,15 @@ from typing import Any, Awaitable, Callable, Optional
 from cerbos.engine.v1 import engine_pb2
 from cerbos.sdk.grpc.client import AsyncCerbosClient
 from cerbos.sdk.model import Principal, Resource
+import fastmcp
 from fastmcp.exceptions import McpError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
-from google.protobuf.json_format import ParseDict
+from google.protobuf import struct_pb2
 from mcp.types import CallToolRequestParams, ErrorData
 from fastmcp.server.dependencies import get_access_token, AccessToken
 
 
-logger = logging.getLogger(__name__)
+logger = fastmcp.utilities.logging.get_logger("cerbos_middleware")
 
 PrincipalBuilder = Callable[
     [AccessToken],
@@ -69,6 +70,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         context: MiddlewareContext[CallToolRequestParams],
         call_next,
     ) -> Any:
+        logger.info("Calling tool with Cerbos authorization")
         principal = await self._resolve_principal(context)
         if principal is None:
             raise McpError(
@@ -115,6 +117,12 @@ class CerbosAuthorizationMiddleware(Middleware):
         return await call_next(context)
 
     async def on_list_tools(self, context, call_next):
+        logger.info("Listing tools with Cerbos authorization")
+        try:
+            await self._authorize_command(context, "list_tools")
+        except McpError:
+            return []
+
         original_result = await super().on_list_tools(context, call_next)
         principal = await self._resolve_principal(context)
         if principal is None:
@@ -150,9 +158,65 @@ class CerbosAuthorizationMiddleware(Middleware):
                 )
         return authorized_tools
 
+    async def on_list_resources(self, context, call_next):
+        logger.info("Listing resources with Cerbos authorization")
+        try:
+            await self._authorize_command(context, "list_resources")
+        except McpError:
+            return []
+
+        return await call_next(context)
+
+    async def on_list_prompts(self, context, call_next):
+        logger.info("Listing prompts with Cerbos authorization")
+        try:
+            await self._authorize_command(context, "list_prompts")
+        except McpError:
+            return []
+
+        return await call_next(context)
+
+    async def _authorize_command(self, context, command_name: str) -> None:
+        logger.info(f"Authorizing command: {command_name}")
+        principal = await self._resolve_principal(context)
+        if principal is None:
+            raise McpError(
+                ErrorData(
+                    code=-32010,
+                    message="Unauthorized",
+                    data="missing_principal",
+                )
+            )
+
+        action = f"cmd::{command_name}"
+        resource = Resource(id=command_name, kind=self._resource_kind)
+
+        granted = await self._is_allowed(action, principal, resource)
+        if not granted:
+            logger.info(
+                "Cerbos denied action",
+                extra={
+                    "principal": principal.id,
+                    "action": action,
+                    "resource": resource.id,
+                },
+            )
+            raise McpError(
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
+            )
+
+        logger.debug(
+            "Cerbos authorized command call",
+            extra={"principal": principal.id,
+                   "resource": resource.id, "action": action},
+        )
+
     async def _is_allowed(
         self, action: str, principal: Principal, resource: Resource
     ) -> bool:
+        logger.info(
+            f"Authorizing action '{action}' for principal '{principal.id}' on resource '{resource.id}'")
         try:
             client = await self._ensure_client()
             principal_pb = _principal_to_proto(principal)
@@ -230,16 +294,57 @@ class CerbosAuthorizationMiddleware(Middleware):
         return principal
 
 
+def _python_to_protobuf_value(value: Any) -> struct_pb2.Value:
+    """Recursively convert Python values to protobuf Value."""
+    if value is None:
+        return struct_pb2.Value(null_value=struct_pb2.NullValue.NULL_VALUE)
+    elif isinstance(value, str):
+        return struct_pb2.Value(string_value=value)
+    elif isinstance(value, bool):
+        return struct_pb2.Value(bool_value=value)
+    elif isinstance(value, (int, float)):
+        return struct_pb2.Value(number_value=float(value))
+    elif isinstance(value, dict):
+        struct_value = struct_pb2.Struct()
+        for k, v in value.items():
+            struct_value.fields[k].CopyFrom(_python_to_protobuf_value(v))
+        return struct_pb2.Value(struct_value=struct_value)
+    elif isinstance(value, (list, tuple)):
+        list_value = struct_pb2.ListValue()
+        for item in value:
+            list_value.values.append(_python_to_protobuf_value(item))
+        return struct_pb2.Value(list_value=list_value)
+    else:
+        # Fallback to string representation for other types
+        return struct_pb2.Value(string_value=str(value))
+
+
 def _principal_to_proto(principal: Principal) -> engine_pb2.Principal:
-    proto = engine_pb2.Principal()
-    ParseDict(principal.to_dict(), proto)
-    return proto
+    # Convert attributes to struct_pb2.Value format recursively
+    attr = {}
+    for key, value in principal.attr.items():
+        attr[key] = _python_to_protobuf_value(value)
+
+    return engine_pb2.Principal(
+        id=principal.id,
+        policy_version=principal.policy_version,
+        roles=principal.roles,
+        attr=attr,
+    )
 
 
 def _resource_to_proto(resource: Resource) -> engine_pb2.Resource:
-    proto = engine_pb2.Resource()
-    ParseDict(resource.to_dict(), proto)
-    return proto
+    # Convert attributes to struct_pb2.Value format recursively
+    attr = {}
+    for key, value in resource.attr.items():
+        attr[key] = _python_to_protobuf_value(value)
+
+    return engine_pb2.Resource(
+        id=resource.id,
+        kind=resource.kind,
+        policy_version=resource.policy_version,
+        attr=attr,
+    )
 
 
 def _env_tls(name: str, default: bool | str) -> bool | str:

@@ -10,4 +10,4 @@ derivedRoles:
         - sales
       condition:
         match:
-          expr: P.attr.region=="EMEA"
+          expr: P.attr.region=="emea"
