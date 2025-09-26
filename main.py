@@ -12,20 +12,29 @@ verifier = StaticTokenVerifier(
         "ian": {
             "client_id": "ian",
             "sub": "ian",
-            "scopes": ["read:data", "write:data", "admin:users"],
-            "roles": ["admin"],
+            "scopes": ["mcp:connect"],
+            "roles": ["ADMIN"],
             "department": "engineering",
-            "region": "us",
+            "region": "NA",
         },
         "sally": {
             "client_id": "sally",
             "sub": "sally",
-            "scopes": ["read:data"],
-            "roles": ["sales"],
-            "department": "sales",
-            "region": "emea",
+            "scopes": ["mcp:connect"],
+            "roles": ["SALES"],
+            "department": "SALES",
+            "region": "EMEA",
+        },
+        "harry": {
+            "client_id": "harry",
+            "sub": "harry",
+            "scopes": ["mcp:connect"],
+            "roles": ["HR"],
+            "department": "HR",
+            "region": "APAC",
         }
-    }
+    },
+    required_scopes=["mcp:connect"]
 )
 
 

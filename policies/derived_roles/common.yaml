@@ -7,7 +7,7 @@ derivedRoles:
   definitions:
     - name: SALES_EMEA
       parentRoles:
-        - sales
+        - SALES
       condition:
         match:
-          expr: P.attr.region=="emea"
+          expr: P.attr.region=="EMEA"

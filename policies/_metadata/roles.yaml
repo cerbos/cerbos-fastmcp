@@ -6,6 +6,6 @@ exportConstants:
   name: idpRoles
   definitions:
     idpRoles:
-      - admin
-      - sales
-      - hr
+      - ADMIN
+      - SALES
+      - HR

@@ -21,7 +21,7 @@ resourcePolicy:
         - list::admin_tool
         - call::admin_tool
       roles:
-        - admin
+        - ADMIN
       effect: EFFECT_ALLOW
     - actions:
         - list::greet
@@ -30,7 +30,7 @@ resourcePolicy:
         - list::get_hr_records
         - call::get_hr_records
       roles:
-        - hr
+        - HR
       effect: EFFECT_ALLOW
     - actions:
         - list::greet
@@ -39,7 +39,7 @@ resourcePolicy:
         - cmd::list_tools
         - list::get_sales_data
       roles:
-        - sales
+        - SALES
       effect: EFFECT_ALLOW
     - actions:
         - call::get_sales_data
@@ -48,7 +48,7 @@ resourcePolicy:
       effect: EFFECT_ALLOW
       condition:
         match:
-          expr: R.attr.arguments.region=="emea"
+          expr: R.attr.arguments.region=="EMEA"
   schemas:
     principalSchema:
       ref: cerbos:///principal.json
