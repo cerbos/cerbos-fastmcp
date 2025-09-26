@@ -119,7 +119,7 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def on_list_tools(self, context, call_next):
         logger.info("Listing tools with Cerbos authorization")
         try:
-            await self._authorize_command(context, "list_tools")
+            await self._authorize_command(context, "tools/list")
         except McpError:
             return []
 
@@ -161,7 +161,7 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def on_list_resources(self, context, call_next):
         logger.info("Listing resources with Cerbos authorization")
         try:
-            await self._authorize_command(context, "list_resources")
+            await self._authorize_command(context, "resources/list")
         except McpError:
             return []
 
@@ -170,7 +170,7 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def on_list_prompts(self, context, call_next):
         logger.info("Listing prompts with Cerbos authorization")
         try:
-            await self._authorize_command(context, "list_prompts")
+            await self._authorize_command(context, "prompts/list")
         except McpError:
             return []
 
