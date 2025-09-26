@@ -85,7 +85,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         tool_name = message.name
         arguments = message.arguments or {}
 
-        action = f"call::{tool_name}"
+        action = f"tools/call::{tool_name}"
         resource = Resource(id=tool_name, kind=self._resource_kind)
         resource.attr.update(
             {
@@ -136,7 +136,7 @@ class CerbosAuthorizationMiddleware(Middleware):
 
         authorized_tools = []
         for tool in original_result:
-            action = f"list::{tool.name}"
+            action = f"tools/list::{tool.name}"
             resource = Resource(id=tool.name, kind=self._resource_kind)
             resource.attr.update(
                 {
@@ -188,16 +188,15 @@ class CerbosAuthorizationMiddleware(Middleware):
                 )
             )
 
-        action = f"cmd::{command_name}"
         resource = Resource(id=command_name, kind=self._resource_kind)
 
-        granted = await self._is_allowed(action, principal, resource)
+        granted = await self._is_allowed(command_name, principal, resource)
         if not granted:
             logger.info(
                 "Cerbos denied action",
                 extra={
                     "principal": principal.id,
-                    "action": action,
+                    "action": command_name,
                     "resource": resource.id,
                 },
             )
@@ -209,7 +208,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         logger.debug(
             "Cerbos authorized command call",
             extra={"principal": principal.id,
-                   "resource": resource.id, "action": action},
+                   "resource": resource.id, "action": command_name},
         )
 
     async def _is_allowed(

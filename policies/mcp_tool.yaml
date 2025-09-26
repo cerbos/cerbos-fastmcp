@@ -9,40 +9,40 @@ resourcePolicy:
     - common
   rules:
     - actions:
-        - cmd::resources/list
-        - cmd::prompts/list
-        - cmd::tools/list
-        - list::greet
-        - call::greet
-        - list::get_sales_data
-        - call::get_sales_data
-        - list::get_engineering_data
-        - call::get_engineering_data
-        - list::admin_tool
-        - call::admin_tool
+        - resources/list
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::get_sales_data
+        - tools/call::get_sales_data
+        - tools/list::get_engineering_data
+        - tools/call::get_engineering_data
+        - tools/list::admin_tool
+        - tools/call::admin_tool
       roles:
         - ADMIN
       effect: EFFECT_ALLOW
     - actions:
-        - cmd::tools/list
-        - call::greet
-        - list::greet
-        - list::get_hr_records
-        - call::get_hr_records
+        - tools/list
+        - tools/call::greet
+        - tools/list::greet
+        - tools/list::get_hr_records
+        - tools/call::get_hr_records
       roles:
         - HR
       effect: EFFECT_ALLOW
     - actions:
-        - cmd::prompts/list
-        - cmd::tools/list
-        - list::greet
-        - call::greet
-        - list::get_sales_data
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::get_sales_data
       roles:
         - SALES
       effect: EFFECT_ALLOW
     - actions:
-        - call::get_sales_data
+        - tools/call::get_sales_data
       derivedRoles:
         - SALES_EMEA
       effect: EFFECT_ALLOW
@@ -57,16 +57,16 @@ resourcePolicy:
   constants:
     local:
       meta::availableActions:
-        - cmd::resources/list
-        - cmd::prompts/list
-        - cmd::tools/list
-        - list::greet
-        - call::greet
-        - list::get_sales_data
-        - call::get_sales_data
-        - list::get_engineering_data
-        - call::get_engineering_data
-        - list::get_hr_records
-        - call::get_hr_records
-        - list::admin_tool
-        - call::admin_tool
+        - resources/list
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::admin_tool
+        - tools/call::admin_tool
+        - tools/list::get_sales_data
+        - tools/call::get_sales_data
+        - tools/list::get_engineering_data
+        - tools/call::get_engineering_data
+        - tools/list::get_hr_records
+        - tools/call::get_hr_records
