@@ -24,19 +24,19 @@ resourcePolicy:
         - ADMIN
       effect: EFFECT_ALLOW
     - actions:
+        - cmd::list_tools
         - list::greet
         - call::greet
-        - cmd::list_tools
         - list::get_hr_records
         - call::get_hr_records
       roles:
         - HR
       effect: EFFECT_ALLOW
     - actions:
-        - list::greet
-        - call::greet
         - cmd::list_prompts
         - cmd::list_tools
+        - list::greet
+        - call::greet
         - list::get_sales_data
       roles:
         - SALES
@@ -57,11 +57,11 @@ resourcePolicy:
   constants:
     local:
       meta::availableActions:
-        - list::greet
-        - call::greet
         - cmd::list_resources
         - cmd::list_prompts
         - cmd::list_tools
+        - list::greet
+        - call::greet
         - list::get_sales_data
         - call::get_sales_data
         - list::get_engineering_data
