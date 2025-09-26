@@ -52,7 +52,7 @@ class CerbosAuthorizationMiddleware(Middleware):
             )
 
         self._resource_kind = resource_kind or os.getenv(
-            "CERBOS_RESOURCE_KIND", "mcp_tool"
+            "CERBOS_RESOURCE_KIND", "mcp_server"
         )
 
         self._tls_verify = (

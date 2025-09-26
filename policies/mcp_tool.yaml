@@ -3,7 +3,7 @@
 apiVersion: api.cerbos.dev/v1
 description: Demo MCP Server
 resourcePolicy:
-  resource: mcp_tool
+  resource: mcp_server
   version: default
   importDerivedRoles:
     - common
@@ -53,7 +53,7 @@ resourcePolicy:
     principalSchema:
       ref: cerbos:///principal.json
     resourceSchema:
-      ref: cerbos:///resources/mcp_tool.json
+      ref: cerbos:///resources/mcp_server.json
   constants:
     local:
       meta::availableActions:

@@ -65,6 +65,7 @@ def principal_builder(token: AccessToken) -> Principal:
 mcp.add_middleware(CerbosAuthorizationMiddleware(
     cerbos_host="localhost:3593",
     principal_builder=principal_builder,
+    resource_kind="mcp_server"
 ))
 
 
