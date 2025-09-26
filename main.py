@@ -69,7 +69,7 @@ mcp.add_middleware(CerbosAuthorizationMiddleware(
 ))
 
 
-@mcp.tool
+@mcp.tool(description="Greet a person")
 def greet(name: str) -> str:
     return f"Hello, {name}!"
 
