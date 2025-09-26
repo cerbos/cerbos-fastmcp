@@ -9,9 +9,9 @@ resourcePolicy:
     - common
   rules:
     - actions:
-        - cmd::list_resources
-        - cmd::list_prompts
-        - cmd::list_tools
+        - cmd::resources/list
+        - cmd::prompts/list
+        - cmd::tools/list
         - list::greet
         - call::greet
         - list::get_sales_data
@@ -24,17 +24,17 @@ resourcePolicy:
         - ADMIN
       effect: EFFECT_ALLOW
     - actions:
-        - cmd::list_tools
-        - list::greet
+        - cmd::tools/list
         - call::greet
+        - list::greet
         - list::get_hr_records
         - call::get_hr_records
       roles:
         - HR
       effect: EFFECT_ALLOW
     - actions:
-        - cmd::list_prompts
-        - cmd::list_tools
+        - cmd::prompts/list
+        - cmd::tools/list
         - list::greet
         - call::greet
         - list::get_sales_data
@@ -57,9 +57,9 @@ resourcePolicy:
   constants:
     local:
       meta::availableActions:
-        - cmd::list_resources
-        - cmd::list_prompts
-        - cmd::list_tools
+        - cmd::resources/list
+        - cmd::prompts/list
+        - cmd::tools/list
         - list::greet
         - call::greet
         - list::get_sales_data
