@@ -425,7 +425,7 @@ wheels = [
 ]
 
 [[package]]
-name = "fastmcp-cerbos"
+name = "cerbos-fastmcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

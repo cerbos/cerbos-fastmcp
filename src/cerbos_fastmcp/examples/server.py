@@ -10,7 +10,7 @@ from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from fastmcp.server.dependencies import AccessToken
 from mcp import ErrorData, McpError
 
-from fastmcp_cerbos import CerbosAuthorizationMiddleware
+from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
 
 def _build_static_verifier() -> StaticTokenVerifier:

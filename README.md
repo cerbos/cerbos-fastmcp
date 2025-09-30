@@ -1,11 +1,11 @@
-# fastmcp-cerbos
+# cerbos-fastmcp
 
 [FastMCP](https://gofastmcp.com/) middleware powered by
 [Cerbos](https://cerbos.dev). Authorize every MCP tool call, prompt request,
 and resource query against your Cerbos policies without rewriting your FastMCP
 server.
 
-## Why fastmcp-cerbos
+## Why cerbos-fastmcp
 
 - Use the Cerbos Policy Decision Point (PDP) you already trust.
 - Apply fine-grained rules to tools, prompts, and resources.
@@ -16,13 +16,13 @@ server.
 ## Getting started
 
 ```bash
-pip install fastmcp-cerbos
+pip install cerbos-fastmcp
 ```
 
 Prefer [`uv`](https://github.com/astral-sh/uv)?
 
 ```bash
-uv pip install fastmcp-cerbos
+uv pip install cerbos-fastmcp
 ```
 
 > **Heads up**
@@ -37,7 +37,7 @@ from cerbos.sdk.model import Principal
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import AccessToken
 
-from fastmcp_cerbos import CerbosAuthorizationMiddleware
+from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
 
 def build_principal(token: AccessToken) -> Principal | None:
@@ -95,11 +95,11 @@ Environment variables let you tweak behaviour without code changes:
 Run the bundled demo server and PDP in one command:
 
 ```bash
-cerbos run -- uv run python -m fastmcp_cerbos.examples.server
+cerbos run -- uv run python -m cerbos_fastmcp.examples.server
 ```
 
 The server listens on port 8000 and uses the policies in `policies/`. Import
-`fastmcp_cerbos.examples.create_example_server()` in your own tests if you need a
+`cerbos_fastmcp.examples.create_example_server()` in your own tests if you need a
 pre-wired FastMCP instance.
 
 ## Testing

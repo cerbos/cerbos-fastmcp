@@ -22,7 +22,7 @@ then run `cerbos run -- uv run pytest` on every push and pull request.
 
 ## Writing new tests
 
-- Monkeypatch `fastmcp_cerbos.middleware.get_access_token` so the middleware sees
+- Monkeypatch `cerbos_fastmcp.middleware.get_access_token` so the middleware sees
 your mocked `AccessToken` objects.
 - Reuse the fixtures in `tests/test_integration.py` to generate principals with
 custom roles or regions.

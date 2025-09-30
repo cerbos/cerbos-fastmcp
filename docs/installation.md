@@ -1,16 +1,16 @@
 # Installation
 
-fastmcp-cerbos targets Python 3.11+. Install it alongside your
+cerbos-fastmcp targets Python 3.11+. Install it alongside your
 [FastMCP](https://gofastmcp.com/) server:
 
 ```bash
-pip install fastmcp-cerbos
+pip install cerbos-fastmcp
 ```
 
 or, with [`uv`](https://github.com/astral-sh/uv):
 
 ```bash
-uv pip install fastmcp-cerbos
+uv pip install cerbos-fastmcp
 ```
 
 The package pulls in the Cerbos Python SDK and FastMCP as dependencies. Make

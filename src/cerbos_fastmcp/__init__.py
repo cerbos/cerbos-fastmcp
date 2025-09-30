@@ -14,6 +14,6 @@ __all__ = [
 ]
 
 try:  # pragma: no cover - used for packaging metadata
-    __version__ = _metadata.version("fastmcp-cerbos")
+    __version__ = _metadata.version("cerbos-fastmcp")
 except _metadata.PackageNotFoundError:  # pragma: no cover - during local dev
     __version__ = "0.0.dev0"

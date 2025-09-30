@@ -6,7 +6,7 @@ Add the middleware to your [FastMCP](https://gofastmcp.com/) app:
 
 ```python
 from fastmcp import FastMCP
-from fastmcp_cerbos import CerbosAuthorizationMiddleware
+from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
 app = FastMCP("My MCP", auth=my_auth)
 app.add_middleware(

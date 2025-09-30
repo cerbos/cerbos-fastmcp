@@ -10,7 +10,7 @@ from fastmcp.server.dependencies import AccessToken
 from fastmcp.server.middleware import MiddlewareContext
 from mcp.types import CallToolRequestParams, ListToolsRequest, Tool
 
-from fastmcp_cerbos import CerbosAuthorizationMiddleware
+from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
 
 class DummyClient:
@@ -57,7 +57,7 @@ async def test_tool_call_allowed(
     monkeypatch: pytest.MonkeyPatch, access_token: AccessToken
 ) -> None:
     monkeypatch.setattr(
-        "fastmcp_cerbos.middleware.get_access_token",
+        "cerbos_fastmcp.middleware.get_access_token",
         lambda: access_token,
     )
 
@@ -83,7 +83,7 @@ async def test_tool_call_allowed(
 @pytest.mark.asyncio
 async def test_tool_call_denied(monkeypatch: pytest.MonkeyPatch, access_token: AccessToken) -> None:
     monkeypatch.setattr(
-        "fastmcp_cerbos.middleware.get_access_token",
+        "cerbos_fastmcp.middleware.get_access_token",
         lambda: access_token,
     )
 
@@ -112,7 +112,7 @@ async def test_list_tools_filters_denied_items(
     monkeypatch: pytest.MonkeyPatch, access_token: AccessToken
 ) -> None:
     monkeypatch.setattr(
-        "fastmcp_cerbos.middleware.get_access_token",
+        "cerbos_fastmcp.middleware.get_access_token",
         lambda: access_token,
     )
 

@@ -13,7 +13,7 @@ from fastmcp.server.dependencies import AccessToken
 from fastmcp.server.middleware import MiddlewareContext
 from mcp.types import CallToolRequestParams, ListToolsRequest, Tool
 
-from fastmcp_cerbos import CerbosAuthorizationMiddleware
+from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
 
 def _make_access_token(role: str, region: str = "NA") -> AccessToken:
@@ -45,7 +45,7 @@ async def _principal_builder(token: AccessToken) -> Principal:
 def run_with_access_token(monkeypatch: pytest.MonkeyPatch) -> Callable[[AccessToken], None]:
     def _setter(token: AccessToken) -> None:
         monkeypatch.setattr(
-            "fastmcp_cerbos.middleware.get_access_token",
+            "cerbos_fastmcp.middleware.get_access_token",
             lambda: token,
         )
 

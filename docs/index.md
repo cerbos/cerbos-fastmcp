@@ -1,4 +1,4 @@
-# fastmcp-cerbos docs
+# cerbos-fastmcp docs
 
 Welcome! These guides show how to drop Cerbos in front of your
 [FastMCP](https://gofastmcp.com/) server,
@@ -13,4 +13,4 @@ configure the middleware, and iterate on policies with confidence.
 - [Testing](testing.md)
 
 Need help? Open an issue on the
-[fastmcp-cerbos repository](https://github.com/cerbos/fastmcp-cerbos/issues).
+[cerbos-fastmcp repository](https://github.com/cerbos/cerbos-fastmcp/issues).

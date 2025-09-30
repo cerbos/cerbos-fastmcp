@@ -1,6 +1,6 @@
 # Example server
 
-`fastmcp_cerbos.examples.server` is a ready-to-run
+`cerbos_fastmcp.examples.server` is a ready-to-run
 [FastMCP](https://gofastmcp.com/) instance protected by Cerbos. It exposes a
 handful of demo tools (sales, engineering, HR, admin) and a principal builder
 that maps JWT claims to Cerbos principals.
@@ -8,7 +8,7 @@ that maps JWT claims to Cerbos principals.
 ## Run locally
 
 ```bash
-cerbos run -- uv run python -m fastmcp_cerbos.examples.server
+cerbos run -- uv run python -m cerbos_fastmcp.examples.server
 ```
 
 The command launches a Cerbos PDP with the repository policies, sets the
@@ -23,7 +23,7 @@ the policy rules.
 Import the helper to get a configured server:
 
 ```python
-from fastmcp_cerbos.examples import create_example_server
+from cerbos_fastmcp.examples import create_example_server
 
 app = create_example_server()
 ```
