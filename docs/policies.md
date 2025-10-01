@@ -1,8 +1,8 @@
 # Policy design
 
 cerbos-fastmcp maps [FastMCP](https://gofastmcp.com/) operations to Cerbos resource actions. The default
-resource kind is `mcp_server` (override it with `resource_kind` or
-`CERBOS_RESOURCE_KIND`).
+resource kind is `mcp_server` (configurable via the `resource_kind` parameter or
+`CERBOS_RESOURCE_KIND` environment variable).
 
 | FastMCP operation | Cerbos action |
 | --- | --- |

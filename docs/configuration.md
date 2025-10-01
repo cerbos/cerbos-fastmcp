@@ -21,13 +21,17 @@ app.add_middleware(
 
 Key parameters:
 
-- `principal_builder`: required. Turns an `AccessToken` into a
-  `cerbos.sdk.model.Principal`. Async functions are supported.
-- `cerbos_host`: optional when `CERBOS_HOST` is set. Accepts `host:port`.
-- `cerbos_client`: inject an existing `AsyncCerbosClient` if you manage the
-  lifecycle yourself.
-- `resource_kind`: default `mcp_server`. Override per deployment if needed.
-- `tls_verify`: `False`, `True`, or a path to a CA bundle.
+- `principal_builder`: **Required**. Turns an `AccessToken` into a
+  `cerbos.sdk.model.Principal`. Both sync and async functions are supported.
+- `cerbos_host`: Optional when `CERBOS_HOST` is set. Accepts `host:port` format.
+  The middleware will immediately create and validate the Cerbos client connection
+  during initialization to provide fail-fast behavior.
+- `cerbos_client`: Optional. Inject an existing `AsyncCerbosClient` if you manage the
+  lifecycle yourself. When provided, `cerbos_host` is ignored.
+- `resource_kind`: Optional, default `mcp_server`. Override per deployment if needed.
+  Can also be set via `CERBOS_RESOURCE_KIND` environment variable.
+- `tls_verify`: Optional, default `False`. Can be `False`, `True`, or a path to a CA bundle.
+  Can also be set via `CERBOS_TLS_VERIFY` environment variable.
 
 ## Environment variables
 
@@ -36,6 +40,25 @@ Key parameters:
 | `CERBOS_HOST` | Cerbos PDP gRPC endpoint (`host:port`). |
 | `CERBOS_RESOURCE_KIND` | Default resource kind used when checking policies. |
 | `CERBOS_TLS_VERIFY` | `true`/`false` or path to a CA bundle. |
+
+### TLS verification values
+
+The `CERBOS_TLS_VERIFY` environment variable supports multiple formats:
+
+- **Truthy values** (`true`, `True`, `TRUE`, `1`, `yes`, `on`): Enable TLS verification
+- **Falsy values** (`false`, `False`, `FALSE`, `0`, `no`, `off`): Disable TLS verification  
+- **File path**: Path to a custom CA certificate bundle
+
+## Fail-fast behavior
+
+The middleware **immediately validates** Cerbos connectivity during initialization when:
+
+- `cerbos_host` is provided (either as parameter or `CERBOS_HOST` env var)
+- No explicit `cerbos_client` is passed
+
+This ensures configuration errors (invalid hostnames, TLS issues, unreachable servers) are caught at startup rather than during the first request, making debugging much easier.
+
+If you need to defer connection establishment, pass a pre-configured `AsyncCerbosClient` via the `cerbos_client` parameter.
 
 ## Access tokens
 
