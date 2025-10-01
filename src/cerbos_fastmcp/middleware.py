@@ -4,26 +4,29 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-
 import os
 from typing import Any, Awaitable, Callable, Optional
-
 from cerbos.engine.v1 import engine_pb2
 from cerbos.sdk.grpc.client import AsyncCerbosClient
 from cerbos.sdk.model import Principal, Resource
+from fastmcp.server.dependencies import AccessToken, get_access_token
+from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
+from fastmcp.tools.tool import Tool
 from fastmcp.utilities import logging
-from fastmcp.exceptions import McpError
-from fastmcp.server.middleware import Middleware, MiddlewareContext
 from google.protobuf import struct_pb2
-from mcp.types import CallToolRequestParams, ErrorData
-from fastmcp.server.dependencies import get_access_token, AccessToken
+from mcp import McpError
+from mcp.types import (
+    CallToolRequestParams,
+    ErrorData,
+    ListToolsRequest,
+)
 
 
 logger = logging.get_logger("cerbos_middleware")
 
 PrincipalBuilder = Callable[
     [AccessToken],
-    Awaitable[Optional[Principal]] | Optional[Principal],
+    Awaitable[Principal] | Principal,
 ]
 
 
@@ -46,28 +49,43 @@ class CerbosAuthorizationMiddleware(Middleware):
 
         self._principal_builder = principal_builder
         self._cerbos_host = cerbos_host or os.getenv("CERBOS_HOST")
-        if cerbos_client is None and not self._cerbos_host:
+        if cerbos_client is None and self._cerbos_host is None:
             raise ValueError(
                 "cerbos_host must be provided or CERBOS_HOST environment variable must be set"
             )
 
-        self._resource_kind = resource_kind or os.getenv("CERBOS_RESOURCE_KIND", "mcp_server")
-
-        self._tls_verify = (
-            tls_verify if tls_verify is not None else _env_tls("CERBOS_TLS_VERIFY", False)
+        self._resource_kind = resource_kind or os.getenv(
+            "CERBOS_RESOURCE_KIND", "mcp_server"
         )
 
-        self._client: Optional[AsyncCerbosClient] = cerbos_client
-        self._owns_client = cerbos_client is None
+        self._tls_verify = (
+            tls_verify
+            if tls_verify is not None
+            else _env_tls("CERBOS_TLS_VERIFY", False)
+        )
+
+        # Eagerly instantiate client if cerbos_host is provided but no explicit client is given
+        # This provides fail-fast behavior for configuration errors
+        if cerbos_client is not None:
+            self._client = cerbos_client
+            self._owns_client = False
+        else:
+            # Create client immediately to catch configuration errors early
+            self._client = AsyncCerbosClient(
+                self._cerbos_host,
+                tls_verify=self._tls_verify,
+            )
+            self._owns_client = True
+
         self._client_lock = asyncio.Lock()
 
     async def on_call_tool(
         self,
         context: MiddlewareContext[CallToolRequestParams],
-        call_next,
+        call_next: CallNext[CallToolRequestParams, list[str]],
     ) -> Any:
         logger.info("Calling tool with Cerbos authorization")
-        principal = await self._resolve_principal(context)
+        principal = await self._resolve_principal()
         if principal is None:
             raise McpError(
                 ErrorData(
@@ -82,13 +100,14 @@ class CerbosAuthorizationMiddleware(Middleware):
         arguments = message.arguments or {}
 
         action = f"tools/call::{tool_name}"
-        resource = Resource(id=tool_name, kind=self._resource_kind)
-        resource.attr.update(
-            {
+        resource = Resource(
+            id=tool_name,
+            kind=self._resource_kind,
+            attr={
                 "tool_name": tool_name,
                 "arguments": arguments,
                 "source": context.source,
-            }
+            },
         )
 
         granted = await self._is_allowed(action, principal, resource)
@@ -101,7 +120,9 @@ class CerbosAuthorizationMiddleware(Middleware):
                     "resource": resource.id,
                 },
             )
-            raise McpError(ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied"))
+            raise McpError(
+                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+            )
 
         logger.debug(
             "Cerbos authorized tool call",
@@ -109,15 +130,19 @@ class CerbosAuthorizationMiddleware(Middleware):
         )
         return await call_next(context)
 
-    async def on_list_tools(self, context, call_next):
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[ListToolsRequest],
+        call_next: CallNext[ListToolsRequest, list[Tool]],
+    ) -> list[Tool]:
         logger.info("Listing tools with Cerbos authorization")
         try:
-            await self._authorize_command(context, "tools/list")
+            await self._authorize_command("tools/list")
         except McpError:
             return []
 
-        original_result = await super().on_list_tools(context, call_next)
-        principal = await self._resolve_principal(context)
+        original_result = await call_next(context)
+        principal = await self._resolve_principal()
         if principal is None:
             raise McpError(
                 ErrorData(
@@ -130,13 +155,14 @@ class CerbosAuthorizationMiddleware(Middleware):
         authorized_tools = []
         for tool in original_result:
             action = f"tools/list::{tool.name}"
-            resource = Resource(id=tool.name, kind=self._resource_kind)
-            resource.attr.update(
-                {
+            resource = Resource(
+                id=tool.name,
+                kind=self._resource_kind,
+                attr={
                     "tool_name": tool.name,
                     "arguments": {},
                     "source": context.source,
-                }
+                },
             )
             if await self._is_allowed(action, principal, resource):
                 authorized_tools.append(tool)
@@ -154,7 +180,7 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def on_list_resources(self, context, call_next):
         logger.info("Listing resources with Cerbos authorization")
         try:
-            await self._authorize_command(context, "resources/list")
+            await self._authorize_command("resources/list")
         except McpError:
             return []
 
@@ -163,15 +189,15 @@ class CerbosAuthorizationMiddleware(Middleware):
     async def on_list_prompts(self, context, call_next):
         logger.info("Listing prompts with Cerbos authorization")
         try:
-            await self._authorize_command(context, "prompts/list")
+            await self._authorize_command("prompts/list")
         except McpError:
             return []
 
         return await call_next(context)
 
-    async def _authorize_command(self, context, command_name: str) -> None:
+    async def _authorize_command(self, command_name: str) -> None:
         logger.info(f"Authorizing command: {command_name}")
-        principal = await self._resolve_principal(context)
+        principal = await self._resolve_principal()
         if principal is None:
             raise McpError(
                 ErrorData(
@@ -193,14 +219,22 @@ class CerbosAuthorizationMiddleware(Middleware):
                     "resource": resource.id,
                 },
             )
-            raise McpError(ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied"))
+            raise McpError(
+                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+            )
 
         logger.debug(
             "Cerbos authorized command call",
-            extra={"principal": principal.id, "resource": resource.id, "action": command_name},
+            extra={
+                "principal": principal.id,
+                "resource": resource.id,
+                "action": command_name,
+            },
         )
 
-    async def _is_allowed(self, action: str, principal: Principal, resource: Resource) -> bool:
+    async def _is_allowed(
+        self, action: str, principal: Principal, resource: Resource
+    ) -> bool:
         logger.info(
             f"Authorizing action '{action}' for principal '{principal.id}' on resource '{resource.id}'"
         )
@@ -241,14 +275,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 )
             return self._client
 
-    async def _resolve_principal(
-        self, context: MiddlewareContext[CallToolRequestParams]
-    ) -> Optional[Principal]:
-
+    async def _resolve_principal(self) -> Optional[Principal]:
         token: AccessToken | None = get_access_token()
-
-        # dump token for debugging
-        logger.debug(f"Access token: {token}")
 
         if token is None:
             raise McpError(
@@ -274,7 +302,9 @@ class CerbosAuthorizationMiddleware(Middleware):
             ) from exc
 
         if principal is not None and not isinstance(principal, Principal):
-            raise TypeError("principal_builder must return a cerbos.sdk.model.Principal or None")
+            raise TypeError(
+                "principal_builder must return a cerbos.sdk.model.Principal"
+            )
         return principal
 
 

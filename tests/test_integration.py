@@ -42,7 +42,9 @@ async def _principal_builder(token: AccessToken) -> Principal:
 
 
 @pytest.fixture
-def run_with_access_token(monkeypatch: pytest.MonkeyPatch) -> Callable[[AccessToken], None]:
+def run_with_access_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Callable[[AccessToken], None]:
     def _setter(token: AccessToken) -> None:
         monkeypatch.setattr(
             "cerbos_fastmcp.middleware.get_access_token",

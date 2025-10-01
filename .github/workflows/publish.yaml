@@ -38,8 +38,8 @@ jobs:
           uv venv
           uv sync --dev
 
-      - name: Install black
-        run: uv pip install black
+      - name: Install ruff
+        run: uv pip install ruff
 
       - name: Setup Cerbos
         uses: cerbos/cerbos-setup-action@v1
@@ -50,7 +50,7 @@ jobs:
 
       - name: Run linting
         run: |
-          uv run black --check .
+          uv run ruff check
 
       - name: Create and push tag
         env:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Iterable
 
 import pytest
 
@@ -18,7 +18,9 @@ class DummyClient:
         self.allowed_actions = set(allowed_actions)
         self.calls: list[tuple[str, Principal, Resource]] = []
 
-    async def is_allowed(self, action: str, principal: Principal, resource: Resource) -> bool:
+    async def is_allowed(
+        self, action: str, principal: Principal, resource: Resource
+    ) -> bool:
         self.calls.append((action, principal, resource))
         return action in self.allowed_actions
 
@@ -81,7 +83,9 @@ async def test_tool_call_allowed(
 
 
 @pytest.mark.asyncio
-async def test_tool_call_denied(monkeypatch: pytest.MonkeyPatch, access_token: AccessToken) -> None:
+async def test_tool_call_denied(
+    monkeypatch: pytest.MonkeyPatch, access_token: AccessToken
+) -> None:
     monkeypatch.setattr(
         "cerbos_fastmcp.middleware.get_access_token",
         lambda: access_token,
