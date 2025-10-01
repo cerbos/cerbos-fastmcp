@@ -35,18 +35,18 @@ Key parameters:
 
 ## Environment variables
 
-| Variable | Description |
-| --- | --- |
-| `CERBOS_HOST` | Cerbos PDP gRPC endpoint (`host:port`). |
+| Variable               | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| `CERBOS_HOST`          | Cerbos PDP gRPC endpoint (`host:port`).            |
 | `CERBOS_RESOURCE_KIND` | Default resource kind used when checking policies. |
-| `CERBOS_TLS_VERIFY` | `true`/`false` or path to a CA bundle. |
+| `CERBOS_TLS_VERIFY`    | `true`/`false` or path to a CA bundle.             |
 
 ### TLS verification values
 
 The `CERBOS_TLS_VERIFY` environment variable supports multiple formats:
 
 - **Truthy values** (`true`, `True`, `TRUE`, `1`, `yes`, `on`): Enable TLS verification
-- **Falsy values** (`false`, `False`, `FALSE`, `0`, `no`, `off`): Disable TLS verification  
+- **Falsy values** (`false`, `False`, `FALSE`, `0`, `no`, `off`): Disable TLS verification
 - **File path**: Path to a custom CA certificate bundle
 
 ## Fail-fast behavior

@@ -24,18 +24,21 @@ then run `cerbos run -- uv run pytest` on every push and pull request.
 ## Writing new tests
 
 ### Authorization logic tests
+
 - Monkeypatch `cerbos_fastmcp.middleware.get_access_token` so the middleware sees
-your mocked `AccessToken` objects.
+  your mocked `AccessToken` objects.
 - Reuse the fixtures in `tests/test_integration.py` to generate principals with
-custom roles or regions.
+  custom roles or regions.
 - Use the `DummyClient` class from `test_middleware.py` for predictable authorization responses.
 
-### Configuration tests  
+### Configuration tests
+
 - Mock `AsyncCerbosClient` creation to test parameter handling without real network calls.
 - Use `monkeypatch.setenv()` to test environment variable behavior.
 - Test fail-fast scenarios by making mocked client construction raise exceptions.
 
 ### Integration tests
+
 - Scope async Cerbos clients to a single test. Mixing event loops will trigger
-runtime errors from `grpc.aio`.
+  runtime errors from `grpc.aio`.
 - Use the live Cerbos PDP started by `cerbos run` for realistic policy evaluation.

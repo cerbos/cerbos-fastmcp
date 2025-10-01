@@ -4,13 +4,13 @@ cerbos-fastmcp maps [FastMCP](https://gofastmcp.com/) operations to Cerbos resou
 resource kind is `mcp_server` (configurable via the `resource_kind` parameter or
 `CERBOS_RESOURCE_KIND` environment variable).
 
-| FastMCP operation | Cerbos action |
-| --- | --- |
-| List tools | `tools/list` |
+| FastMCP operation    | Cerbos action             |
+| -------------------- | ------------------------- |
+| List tools           | `tools/list`              |
 | Tool visible in list | `tools/list::<tool_name>` |
-| Call tool | `tools/call::<tool_name>` |
-| List prompts | `prompts/list` |
-| List resources | `resources/list` |
+| Call tool            | `tools/call::<tool_name>` |
+| List prompts         | `prompts/list`            |
+| List resources       | `resources/list`          |
 
 A working policy ships in `policies/mcp_tool.yaml`:
 
