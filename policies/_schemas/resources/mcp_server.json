@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "mcp_server",
+  "description": "Schema for mcp_server attributes",
+  "properties": {
+    "active": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

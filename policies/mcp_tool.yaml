@@ -1,17 +1,74 @@
 # yaml-language-server: $schema=https://api.cerbos.dev/latest/cerbos/policy/v1/Policy.schema.json
 ---
 apiVersion: api.cerbos.dev/v1
+description: Demo MCP Server
 resourcePolicy:
-  resource: "mcp_tool"
-  version: "default"
+  resource: mcp_server
+  version: default
   rules:
-    - actions: ["list::greet", "call::greet"]
-      effect: EFFECT_ALLOW
+    - actions:
+        - resources/list
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::admin_tool
+        - tools/call::admin_tool
+        - tools/list::get_sales_data
+        - tools/call::get_sales_data
+        - tools/list::get_engineering_data
+        - tools/call::get_engineering_data
       roles:
-        - "admin"
-        - "sales"
-
-    - actions: ["list::goodbye", "call::goodbye"]
+        - ADMIN
       effect: EFFECT_ALLOW
+    - actions:
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::get_sales_data
       roles:
-        - "admin"
+        - SALES
+      effect: EFFECT_ALLOW
+    - actions:
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::get_hr_records
+        - tools/call::get_hr_records
+      roles:
+        - HR
+      effect: EFFECT_ALLOW
+    - actions:
+        - tools/call::get_sales_data
+      roles:
+        - SALES
+      effect: EFFECT_ALLOW
+      condition:
+        match:
+          expr: R.attr.arguments.region==P.attr.region
+      output:
+        when:
+          ruleActivated: '"User requested HR records from their own region"'
+          conditionNotMet: '"User requested records from a different region"'
+  schemas:
+    principalSchema:
+      ref: cerbos:///principal.json
+    resourceSchema:
+      ref: cerbos:///resources/mcp_server.json
+  constants:
+    local:
+      meta::availableActions:
+        - resources/list
+        - prompts/list
+        - tools/list
+        - tools/list::greet
+        - tools/call::greet
+        - tools/list::admin_tool
+        - tools/call::admin_tool
+        - tools/list::get_sales_data
+        - tools/call::get_sales_data
+        - tools/list::get_engineering_data
+        - tools/call::get_engineering_data
+        - tools/list::get_hr_records
+        - tools/call::get_hr_records

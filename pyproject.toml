@@ -1,10 +1,66 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "fast-mcp-cerbos"
+name = "cerbos-fastmcp"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Cerbos authorization middleware for FastMCP servers."
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Cerbos" }]
+keywords = ["cerbos", "fastmcp", "middleware", "authorization", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "cerbos>=0.14.0",
-    "fastmcp>=2.12.3"
+    "fastmcp>=2.12.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.9.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.23.8",
+]
+
+[project.urls]
+Homepage = "https://cerbos.dev"
+Repository = "https://github.com/cerbos/cerbos-fastmcp"
+Issues = "https://github.com/cerbos/cerbos-fastmcp/issues"
+Documentation = "https://docs.cerbos.dev"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cerbos_fastmcp = ["py.typed"]
+
+[tool.black]
+target-version = ["py311", "py312"]
+line-length = 100
+exclude = '''
+/(dist|build|\.uv-cache|\.venv)/
+'''
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.13.2",
+    "pyright>=1.1.405",
 ]

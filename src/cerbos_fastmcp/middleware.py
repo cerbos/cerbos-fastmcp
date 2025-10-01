@@ -4,25 +4,29 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import logging
 import os
 from typing import Any, Awaitable, Callable, Optional
-
 from cerbos.engine.v1 import engine_pb2
 from cerbos.sdk.grpc.client import AsyncCerbosClient
 from cerbos.sdk.model import Principal, Resource
-from fastmcp.exceptions import McpError
-from fastmcp.server.middleware import Middleware, MiddlewareContext
-from google.protobuf.json_format import ParseDict
-from mcp.types import CallToolRequestParams, ErrorData
-from fastmcp.server.dependencies import get_access_token, AccessToken
+from fastmcp.server.dependencies import AccessToken, get_access_token
+from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
+from fastmcp.tools.tool import Tool
+from fastmcp.utilities import logging
+from google.protobuf import struct_pb2
+from mcp import McpError
+from mcp.types import (
+    CallToolRequestParams,
+    ErrorData,
+    ListToolsRequest,
+)
 
 
-logger = logging.getLogger(__name__)
+logger = logging.get_logger("cerbos_middleware")
 
 PrincipalBuilder = Callable[
     [AccessToken],
-    Awaitable[Optional[Principal]] | Optional[Principal],
+    Awaitable[Principal] | Principal,
 ]
 
 
@@ -45,13 +49,13 @@ class CerbosAuthorizationMiddleware(Middleware):
 
         self._principal_builder = principal_builder
         self._cerbos_host = cerbos_host or os.getenv("CERBOS_HOST")
-        if cerbos_client is None and not self._cerbos_host:
+        if cerbos_client is None and self._cerbos_host is None:
             raise ValueError(
                 "cerbos_host must be provided or CERBOS_HOST environment variable must be set"
             )
 
         self._resource_kind = resource_kind or os.getenv(
-            "CERBOS_RESOURCE_KIND", "mcp_tool"
+            "CERBOS_RESOURCE_KIND", "mcp_server"
         )
 
         self._tls_verify = (
@@ -60,16 +64,28 @@ class CerbosAuthorizationMiddleware(Middleware):
             else _env_tls("CERBOS_TLS_VERIFY", False)
         )
 
-        self._client: Optional[AsyncCerbosClient] = cerbos_client
-        self._owns_client = cerbos_client is None
+        # Eagerly instantiate client if cerbos_host is provided but no explicit client is given
+        # This provides fail-fast behavior for configuration errors
+        if cerbos_client is not None:
+            self._client = cerbos_client
+            self._owns_client = False
+        else:
+            # Create client immediately to catch configuration errors early
+            self._client = AsyncCerbosClient(
+                self._cerbos_host,
+                tls_verify=self._tls_verify,
+            )
+            self._owns_client = True
+
         self._client_lock = asyncio.Lock()
 
     async def on_call_tool(
         self,
         context: MiddlewareContext[CallToolRequestParams],
-        call_next,
+        call_next: CallNext[CallToolRequestParams, list[str]],
     ) -> Any:
-        principal = await self._resolve_principal(context)
+        logger.info("Calling tool with Cerbos authorization")
+        principal = await self._resolve_principal()
         if principal is None:
             raise McpError(
                 ErrorData(
@@ -78,20 +94,20 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="missing_principal",
                 )
             )
-            
 
         message = context.message
         tool_name = message.name
         arguments = message.arguments or {}
 
-        action = f"call::{tool_name}"
-        resource = Resource(id=tool_name, kind=self._resource_kind)
-        resource.attr.update(
-            {
+        action = f"tools/call::{tool_name}"
+        resource = Resource(
+            id=tool_name,
+            kind=self._resource_kind,
+            attr={
                 "tool_name": tool_name,
                 "arguments": arguments,
                 "source": context.source,
-            }
+            },
         )
 
         granted = await self._is_allowed(action, principal, resource)
@@ -114,9 +130,19 @@ class CerbosAuthorizationMiddleware(Middleware):
         )
         return await call_next(context)
 
-    async def on_list_tools(self, context, call_next):
-        original_result = await super().on_list_tools(context, call_next)
-        principal = await self._resolve_principal(context)
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[ListToolsRequest],
+        call_next: CallNext[ListToolsRequest, list[Tool]],
+    ) -> list[Tool]:
+        logger.info("Listing tools with Cerbos authorization")
+        try:
+            await self._authorize_command("tools/list")
+        except McpError:
+            return []
+
+        original_result = await call_next(context)
+        principal = await self._resolve_principal()
         if principal is None:
             raise McpError(
                 ErrorData(
@@ -125,17 +151,18 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="missing_principal",
                 )
             )
-        
+
         authorized_tools = []
         for tool in original_result:
-            action = f"list::{tool.name}"
-            resource = Resource(id=tool.name, kind=self._resource_kind)
-            resource.attr.update(
-                {
+            action = f"tools/list::{tool.name}"
+            resource = Resource(
+                id=tool.name,
+                kind=self._resource_kind,
+                attr={
                     "tool_name": tool.name,
                     "arguments": {},
                     "source": context.source,
-                }
+                },
             )
             if await self._is_allowed(action, principal, resource):
                 authorized_tools.append(tool)
@@ -149,11 +176,68 @@ class CerbosAuthorizationMiddleware(Middleware):
                     },
                 )
         return authorized_tools
-    
+
+    async def on_list_resources(self, context, call_next):
+        logger.info("Listing resources with Cerbos authorization")
+        try:
+            await self._authorize_command("resources/list")
+        except McpError:
+            return []
+
+        return await call_next(context)
+
+    async def on_list_prompts(self, context, call_next):
+        logger.info("Listing prompts with Cerbos authorization")
+        try:
+            await self._authorize_command("prompts/list")
+        except McpError:
+            return []
+
+        return await call_next(context)
+
+    async def _authorize_command(self, command_name: str) -> None:
+        logger.info(f"Authorizing command: {command_name}")
+        principal = await self._resolve_principal()
+        if principal is None:
+            raise McpError(
+                ErrorData(
+                    code=-32010,
+                    message="Unauthorized",
+                    data="missing_principal",
+                )
+            )
+
+        resource = Resource(id=command_name, kind=self._resource_kind)
+
+        granted = await self._is_allowed(command_name, principal, resource)
+        if not granted:
+            logger.info(
+                "Cerbos denied action",
+                extra={
+                    "principal": principal.id,
+                    "action": command_name,
+                    "resource": resource.id,
+                },
+            )
+            raise McpError(
+                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+            )
+
+        logger.debug(
+            "Cerbos authorized command call",
+            extra={
+                "principal": principal.id,
+                "resource": resource.id,
+                "action": command_name,
+            },
+        )
 
     async def _is_allowed(
         self, action: str, principal: Principal, resource: Resource
     ) -> bool:
+        logger.info(
+            f"Authorizing action '{action}' for principal '{principal.id}' on resource '{resource.id}'"
+        )
         try:
             client = await self._ensure_client()
             principal_pb = _principal_to_proto(principal)
@@ -191,15 +275,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 )
             return self._client
 
-    async def _resolve_principal(
-        self, context: MiddlewareContext[CallToolRequestParams]
-    ) -> Optional[Principal]:
-        
+    async def _resolve_principal(self) -> Optional[Principal]:
         token: AccessToken | None = get_access_token()
-
-        # dump token for debugging
-        logger.debug(f"Access token: {token}")
-        
 
         if token is None:
             raise McpError(
@@ -209,7 +286,7 @@ class CerbosAuthorizationMiddleware(Middleware):
                     data="principal_builder_error - no access token available",
                 )
             )
-        
+
         try:
             principal = self._principal_builder(token)
             if inspect.isawaitable(principal):
@@ -226,28 +303,62 @@ class CerbosAuthorizationMiddleware(Middleware):
 
         if principal is not None and not isinstance(principal, Principal):
             raise TypeError(
-                "principal_builder must return a cerbos.sdk.model.Principal or None"
+                "principal_builder must return a cerbos.sdk.model.Principal"
             )
         return principal
 
 
+def _python_to_protobuf_value(value: Any) -> struct_pb2.Value:
+    """Recursively convert Python values to protobuf Value."""
+    if value is None:
+        return struct_pb2.Value(null_value=struct_pb2.NullValue.NULL_VALUE)
+    elif isinstance(value, str):
+        return struct_pb2.Value(string_value=value)
+    elif isinstance(value, bool):
+        return struct_pb2.Value(bool_value=value)
+    elif isinstance(value, (int, float)):
+        return struct_pb2.Value(number_value=float(value))
+    elif isinstance(value, dict):
+        struct_value = struct_pb2.Struct()
+        for k, v in value.items():
+            struct_value.fields[k].CopyFrom(_python_to_protobuf_value(v))
+        return struct_pb2.Value(struct_value=struct_value)
+    elif isinstance(value, (list, tuple)):
+        list_value = struct_pb2.ListValue()
+        for item in value:
+            list_value.values.append(_python_to_protobuf_value(item))
+        return struct_pb2.Value(list_value=list_value)
+    else:
+        # Fallback to string representation for other types
+        return struct_pb2.Value(string_value=str(value))
+
+
 def _principal_to_proto(principal: Principal) -> engine_pb2.Principal:
-    proto = engine_pb2.Principal()
-    ParseDict(principal.to_dict(), proto)
-    return proto
+    # Convert attributes to struct_pb2.Value format recursively
+    attr = {}
+    for key, value in principal.attr.items():
+        attr[key] = _python_to_protobuf_value(value)
+
+    return engine_pb2.Principal(
+        id=principal.id,
+        policy_version=principal.policy_version,
+        roles=principal.roles,
+        attr=attr,
+    )
 
 
 def _resource_to_proto(resource: Resource) -> engine_pb2.Resource:
-    proto = engine_pb2.Resource()
-    ParseDict(resource.to_dict(), proto)
-    return proto
+    # Convert attributes to struct_pb2.Value format recursively
+    attr = {}
+    for key, value in resource.attr.items():
+        attr[key] = _python_to_protobuf_value(value)
 
-
-def _env_flag(name: str, default: bool) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.lower() in {"1", "true", "yes", "on"}
+    return engine_pb2.Resource(
+        id=resource.id,
+        kind=resource.kind,
+        policy_version=resource.policy_version,
+        attr=attr,
+    )
 
 
 def _env_tls(name: str, default: bool | str) -> bool | str:

@@ -1,0 +1,68 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g., 1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache uv and pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            uv.lock
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv sync --dev
+
+      - name: Install ruff
+        run: uv pip install ruff
+
+      - name: Setup Cerbos
+        uses: cerbos/cerbos-setup-action@v1
+
+      - name: Run tests
+        run: |
+          cerbos run -- uv run python -m pytest --maxfail=2 --disable-warnings -q
+
+      - name: Run linting
+        run: |
+          uv run ruff check
+
+      - name: Create and push tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a v${{ github.event.inputs.version }} -m "Release v${{ github.event.inputs.version }}"
+          git push origin v${{ github.event.inputs.version }}
+
+      - name: Build and publish to PyPI
+        env:
+          UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          uv publish --token $UV_PYPI_TOKEN
