@@ -24,8 +24,7 @@ Key parameters:
 - `principal_builder`: **Required**. Turns an `AccessToken` into a
   `cerbos.sdk.model.Principal`. Both sync and async functions are supported.
 - `cerbos_host`: Optional when `CERBOS_HOST` is set. Accepts `host:port` format.
-  The middleware creates and validates the Cerbos client automatically the first
-  time it handles a message, ensuring the gRPC channel is bound to the active event loop.
+  The middleware creates and validates the Cerbos client automatically when an MCP client first connects and initializes the session, ensuring the gRPC channel is bound to the active event loop.
 - `cerbos_client`: Optional. Inject an existing `AsyncCerbosClient` if you manage the
   lifecycle yourself. When provided, `cerbos_host` is ignored.
 - `resource_kind`: Optional, default `mcp_server`. Override per deployment if needed.
