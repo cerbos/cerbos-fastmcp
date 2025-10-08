@@ -64,20 +64,24 @@ class CerbosAuthorizationMiddleware(Middleware):
             else _env_tls("CERBOS_TLS_VERIFY", False)
         )
 
-        # Eagerly instantiate client if cerbos_host is provided but no explicit client is given
-        # This provides fail-fast behavior for configuration errors
+        # Defer client creation until first use so the gRPC channel binds to the running loop
         if cerbos_client is not None:
             self._client = cerbos_client
             self._owns_client = False
         else:
-            # Create client immediately to catch configuration errors early
-            self._client = AsyncCerbosClient(
-                self._cerbos_host,
-                tls_verify=self._tls_verify,
-            )
+            # Lazily create the client in the active event loop to avoid loop mismatches
+            self._client = None
             self._owns_client = True
 
         self._client_lock = asyncio.Lock()
+
+    async def on_initialize(self, context, call_next):
+        if self._owns_client:
+            client = await self._ensure_client()
+            if hasattr(client, "server_info"):
+                await client.server_info()
+
+        await call_next(context)
 
     async def on_call_tool(
         self,
@@ -121,7 +125,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 },
             )
             raise McpError(
-                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
             )
 
         logger.debug(
@@ -220,7 +225,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 },
             )
             raise McpError(
-                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
             )
 
         logger.debug(
@@ -236,7 +242,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         self, action: str, principal: Principal, resource: Resource
     ) -> bool:
         logger.info(
-            f"Authorizing action '{action}' for principal '{principal.id}' on resource '{resource.id}'"
+            f"Authorizing action '{action}' for principal '{principal.id}' on resource kind:'{resource.kind} id:'{resource.id}'"
         )
         try:
             client = await self._ensure_client()
@@ -263,7 +269,8 @@ class CerbosAuthorizationMiddleware(Middleware):
             return self._client
 
         if not self._owns_client:
-            raise RuntimeError("Cerbos client was provided but is not available")
+            raise RuntimeError(
+                "Cerbos client was provided but is not available")
 
         async with self._client_lock:
             if self._client is None:

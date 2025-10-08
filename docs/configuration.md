@@ -24,8 +24,7 @@ Key parameters:
 - `principal_builder`: **Required**. Turns an `AccessToken` into a
   `cerbos.sdk.model.Principal`. Both sync and async functions are supported.
 - `cerbos_host`: Optional when `CERBOS_HOST` is set. Accepts `host:port` format.
-  The middleware will immediately create and validate the Cerbos client connection
-  during initialization to provide fail-fast behavior.
+  The middleware creates and validates the Cerbos client automatically when an MCP client first connects and initializes the session, ensuring the gRPC channel is bound to the active event loop.
 - `cerbos_client`: Optional. Inject an existing `AsyncCerbosClient` if you manage the
   lifecycle yourself. When provided, `cerbos_host` is ignored.
 - `resource_kind`: Optional, default `mcp_server`. Override per deployment if needed.
@@ -51,14 +50,12 @@ The `CERBOS_TLS_VERIFY` environment variable supports multiple formats:
 
 ## Fail-fast behavior
 
-The middleware **immediately validates** Cerbos connectivity during initialization when:
+The middleware performs a lightweight `server_info` call the first time an MCP client connects (when it owns the Cerbos client). This catches configuration errors
+(invalid hostnames, TLS issues, unreachable servers) before any authorization
+logic runs while keeping the gRPC client bound to the running event loop.
 
-- `cerbos_host` is provided (either as parameter or `CERBOS_HOST` env var)
-- No explicit `cerbos_client` is passed
-
-This ensures configuration errors (invalid hostnames, TLS issues, unreachable servers) are caught at startup rather than during the first request, making debugging much easier.
-
-If you need to defer connection establishment, pass a pre-configured `AsyncCerbosClient` via the `cerbos_client` parameter.
+If you need to defer connection establishment entirely, provide a pre-configured
+`AsyncCerbosClient` via the `cerbos_client` parameter.
 
 ## Access tokens
 

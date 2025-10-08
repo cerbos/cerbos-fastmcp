@@ -3,7 +3,7 @@
 The repository ships with three layers of tests:
 
 - **Unit tests** (`test_middleware.py`) using a stubbed Cerbos client for authorization logic.
-- **Client configuration tests** (`test_client_config.py`) for middleware setup, environment variables, and fail-fast behavior.
+- **Client configuration tests** (`test_client_config.py`) for middleware setup, environment variables, and warm-up fail-fast behavior.
 - **Integration tests** (`test_integration.py`) that talk to a live Cerbos PDP.
 
 ## Run the suite
@@ -35,7 +35,9 @@ then run `cerbos run -- uv run pytest` on every push and pull request.
 
 - Mock `AsyncCerbosClient` creation to test parameter handling without real network calls.
 - Use `monkeypatch.setenv()` to test environment variable behavior.
-- Test fail-fast scenarios by making mocked client construction raise exceptions.
+- Exercise initialization fail-fast scenarios by making mocked client construction raise
+  exceptions. In tests you can call `await middleware._ensure_client()` directly or drive
+  `await middleware.on_initialize(...)` to trigger the same path as production startup.
 
 ### Integration tests
 
