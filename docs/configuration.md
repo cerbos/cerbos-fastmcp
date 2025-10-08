@@ -51,8 +51,7 @@ The `CERBOS_TLS_VERIFY` environment variable supports multiple formats:
 
 ## Fail-fast behavior
 
-The middleware performs a lightweight `server_info` call the first time it sees a
-message (when it owns the Cerbos client). This catches configuration errors
+The middleware performs a lightweight `server_info` call the first time an MCP client connects (when it owns the Cerbos client). This catches configuration errors
 (invalid hostnames, TLS issues, unreachable servers) before any authorization
 logic runs while keeping the gRPC client bound to the running event loop.
 
