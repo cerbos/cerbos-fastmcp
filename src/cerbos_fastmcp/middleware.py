@@ -92,14 +92,13 @@ class CerbosAuthorizationMiddleware(Middleware):
 
             self._warmup_complete = True
 
-    async def on_message(
-        self,
-        context: MiddlewareContext[Any],
-        call_next: CallNext[Any, Any],
-    ) -> Any:
+    async def on_initialize(self, context, call_next):
         if self._owns_client:
-            await self.warm_up()
-        return await call_next(context)
+            client = await self._ensure_client()
+            if hasattr(client, "server_info"):
+                await client.server_info()
+
+        await call_next(context)
 
     async def on_call_tool(
         self,
@@ -143,7 +142,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 },
             )
             raise McpError(
-                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
             )
 
         logger.debug(
@@ -242,7 +242,8 @@ class CerbosAuthorizationMiddleware(Middleware):
                 },
             )
             raise McpError(
-                ErrorData(code=-32010, message="Unauthorized", data="cerbos_denied")
+                ErrorData(code=-32010, message="Unauthorized",
+                          data="cerbos_denied")
             )
 
         logger.debug(
@@ -258,7 +259,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         self, action: str, principal: Principal, resource: Resource
     ) -> bool:
         logger.info(
-            f"Authorizing action '{action}' for principal '{principal.id}' on resource '{resource.id}'"
+            f"Authorizing action '{action}' for principal '{principal.id}' on resource kind:'{resource.kind} id:'{resource.id}'"
         )
         try:
             client = await self._ensure_client()
@@ -286,7 +287,8 @@ class CerbosAuthorizationMiddleware(Middleware):
             return self._client
 
         if not self._owns_client:
-            raise RuntimeError("Cerbos client was provided but is not available")
+            raise RuntimeError(
+                "Cerbos client was provided but is not available")
 
         async with self._client_lock:
             if self._client is None:
