@@ -64,20 +64,42 @@ class CerbosAuthorizationMiddleware(Middleware):
             else _env_tls("CERBOS_TLS_VERIFY", False)
         )
 
-        # Eagerly instantiate client if cerbos_host is provided but no explicit client is given
-        # This provides fail-fast behavior for configuration errors
+        # Defer client creation until first use so the gRPC channel binds to the running loop
         if cerbos_client is not None:
             self._client = cerbos_client
             self._owns_client = False
         else:
-            # Create client immediately to catch configuration errors early
-            self._client = AsyncCerbosClient(
-                self._cerbos_host,
-                tls_verify=self._tls_verify,
-            )
+            # Lazily create the client in the active event loop to avoid loop mismatches
+            self._client = None
             self._owns_client = True
 
         self._client_lock = asyncio.Lock()
+        self._warmup_lock = asyncio.Lock()
+        self._warmup_complete = False
+
+    async def warm_up(self) -> None:
+        """Create the Cerbos client in the running loop and verify connectivity."""
+        if self._warmup_complete:
+            return
+
+        async with self._warmup_lock:
+            if self._warmup_complete:
+                return
+
+            client = await self._ensure_client()
+            if hasattr(client, "server_info"):
+                await client.server_info()
+
+            self._warmup_complete = True
+
+    async def on_message(
+        self,
+        context: MiddlewareContext[Any],
+        call_next: CallNext[Any, Any],
+    ) -> Any:
+        if self._owns_client:
+            await self.warm_up()
+        return await call_next(context)
 
     async def on_call_tool(
         self,
@@ -257,6 +279,7 @@ class CerbosAuthorizationMiddleware(Middleware):
         if self._owns_client and self._client is not None:
             await self._client.close()
             self._client = None
+        self._warmup_complete = False
 
     async def _ensure_client(self) -> AsyncCerbosClient:
         if self._client is not None:

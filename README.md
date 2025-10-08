@@ -63,7 +63,8 @@ app.add_middleware(
 )
 ```
 
-The middleware creates a Cerbos gRPC client using `CERBOS_HOST`. Provide an
+The middleware creates a Cerbos gRPC client using `CERBOS_HOST` the first time it
+handles a message, verifying connectivity automatically. Provide an
 `AsyncCerbosClient` instance if you want to manage connections yourself.
 
 ## Policy model
