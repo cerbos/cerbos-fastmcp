@@ -10,7 +10,6 @@ from cerbos.sdk.grpc.client import AsyncCerbosClient
 from cerbos.sdk.model import Principal
 from fastmcp.server.dependencies import AccessToken
 from fastmcp.server.middleware import MiddlewareContext
-from mcp.types import ListToolsRequest
 
 from cerbos_fastmcp import CerbosAuthorizationMiddleware
 
@@ -411,10 +410,10 @@ class TestWarmUpBehavior:
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
-    async def test_on_message_triggers_warm_up(
+    async def test_on_initialize_creates_client(
         self, mock_client_class: Mock
     ) -> None:
-        """Test that warm-up runs automatically when the middleware handles a message."""
+        """Test that the middleware initializes the client during startup."""
         mock_client_instance = AsyncMock(spec=AsyncCerbosClient)
         mock_client_class.return_value = mock_client_instance
 
@@ -424,14 +423,13 @@ class TestWarmUpBehavior:
         )
 
         context = MiddlewareContext(
-            message=ListToolsRequest(),
-            method="tools/list",
+            message=None,
+            method="initialize",
         )
-        call_next = AsyncMock(return_value="OK")
+        call_next = AsyncMock()
 
-        result = await middleware.on_message(context, call_next)
+        await middleware.on_initialize(context, call_next)
 
-        assert result == "OK"
+        call_next.assert_awaited_once_with(context)
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=False)
         assert mock_client_instance.server_info.await_count == 1
-        assert middleware._warmup_complete
