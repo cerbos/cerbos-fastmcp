@@ -35,9 +35,9 @@ then run `cerbos run -- uv run pytest` on every push and pull request.
 
 - Mock `AsyncCerbosClient` creation to test parameter handling without real network calls.
 - Use `monkeypatch.setenv()` to test environment variable behavior.
-- Exercise warm-up fail-fast scenarios by making mocked client construction raise
-  exceptions. In tests you can call `await middleware.warm_up()` directly, while
-  production traffic triggers the same path automatically.
+- Exercise initialization fail-fast scenarios by making mocked client construction raise
+  exceptions. In tests you can call `await middleware._ensure_client()` directly or drive
+  `await middleware.on_initialize(...)` to trigger the same path as production startup.
 
 ### Integration tests
 

@@ -74,23 +74,6 @@ class CerbosAuthorizationMiddleware(Middleware):
             self._owns_client = True
 
         self._client_lock = asyncio.Lock()
-        self._warmup_lock = asyncio.Lock()
-        self._warmup_complete = False
-
-    async def warm_up(self) -> None:
-        """Create the Cerbos client in the running loop and verify connectivity."""
-        if self._warmup_complete:
-            return
-
-        async with self._warmup_lock:
-            if self._warmup_complete:
-                return
-
-            client = await self._ensure_client()
-            if hasattr(client, "server_info"):
-                await client.server_info()
-
-            self._warmup_complete = True
 
     async def on_initialize(self, context, call_next):
         if self._owns_client:
@@ -280,7 +263,6 @@ class CerbosAuthorizationMiddleware(Middleware):
         if self._owns_client and self._client is not None:
             await self._client.close()
             self._client = None
-        self._warmup_complete = False
 
     async def _ensure_client(self) -> AsyncCerbosClient:
         if self._client is not None:

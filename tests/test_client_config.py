@@ -55,10 +55,11 @@ class TestClientConfiguration:
             tls_verify=True,
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=True)
         assert middleware._client is mock_client_instance
+        assert client is mock_client_instance
         assert middleware._owns_client
 
     @pytest.mark.asyncio
@@ -75,13 +76,14 @@ class TestClientConfiguration:
             principal_builder=_principal_builder,
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with(
             "env-host:3593",
             tls_verify=False,  # default value
         )
         assert middleware._client is mock_client_instance
+        assert client is mock_client_instance
         assert middleware._owns_client
 
     @pytest.mark.asyncio
@@ -99,7 +101,7 @@ class TestClientConfiguration:
             principal_builder=_principal_builder,
         )
 
-        await middleware.warm_up()
+        await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("param-host:3593", tls_verify=False)
 
@@ -140,9 +142,10 @@ class TestTLSConfiguration:
             tls_verify=True,
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=True)
+        assert client is mock_client_instance
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
@@ -159,9 +162,10 @@ class TestTLSConfiguration:
             tls_verify=False,
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=False)
+        assert client is mock_client_instance
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
@@ -178,11 +182,12 @@ class TestTLSConfiguration:
             tls_verify="/path/to/cert.pem",
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with(
             "localhost:3593", tls_verify="/path/to/cert.pem"
         )
+        assert client is mock_client_instance
 
     @pytest.mark.parametrize(
         "env_value,expected",
@@ -221,9 +226,10 @@ class TestTLSConfiguration:
             principal_builder=_principal_builder,
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=expected)
+        assert client is mock_client_instance
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
@@ -241,9 +247,10 @@ class TestTLSConfiguration:
             tls_verify=False,  # This should override the env var
         )
 
-        await middleware.warm_up()
+        client = await middleware._ensure_client()
 
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=False)
+        assert client is mock_client_instance
 
 
 class TestResourceKindConfiguration:
@@ -320,14 +327,14 @@ class TestClientLifecycle:
             assert middleware._owns_client
             assert middleware._client is None
 
-            await middleware.warm_up()
+            client = await middleware._ensure_client()
             assert middleware._client is mock_client
+            assert client is mock_client
 
             # Close should call client.close() and clear the reference
-        await middleware.close()
-        assert mock_client.close.await_count == 1
-        assert middleware._client is None
-        assert middleware._warmup_complete is False
+            await middleware.close()
+            assert mock_client.close.await_count == 1
+            assert middleware._client is None
 
     @pytest.mark.asyncio
     async def test_external_client_not_cleaned_up(self) -> None:
@@ -349,15 +356,15 @@ class TestClientLifecycle:
         assert middleware._client is mock_client
 
 
-class TestWarmUpBehavior:
-    """Test cases for connection validation during warm-up."""
+class TestClientInitialization:
+    """Test cases for client creation and initialization."""
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
-    async def test_client_creation_failure_during_warm_up(
+    async def test_client_creation_failure_during_initialization(
         self, mock_client_class: Mock
     ) -> None:
-        """Test that client creation failures are surfaced during warm-up."""
+        """Test that client creation failures surface during initialization."""
         mock_client_class.side_effect = ConnectionError(
             "Cannot connect to Cerbos server"
         )
@@ -368,14 +375,14 @@ class TestWarmUpBehavior:
         )
 
         with pytest.raises(ConnectionError, match="Cannot connect to Cerbos server"):
-            await middleware.warm_up()
+            await middleware._ensure_client()
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
-    async def test_tls_configuration_error_during_warm_up(
+    async def test_tls_configuration_error_during_initialization(
         self, mock_client_class: Mock
     ) -> None:
-        """Test that TLS configuration errors are surfaced during warm-up."""
+        """Test that TLS configuration errors surface during initialization."""
         mock_client_class.side_effect = ValueError("Invalid TLS configuration")
 
         middleware = CerbosAuthorizationMiddleware(
@@ -385,14 +392,14 @@ class TestWarmUpBehavior:
         )
 
         with pytest.raises(ValueError, match="Invalid TLS configuration"):
-            await middleware.warm_up()
+            await middleware._ensure_client()
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
-    async def test_client_cached_after_warm_up(
+    async def test_client_cached_after_ensure_client(
         self, mock_client_class: Mock
     ) -> None:
-        """Test that client remains cached after warm-up."""
+        """Test that the client instance is cached after creation."""
         mock_client_instance = AsyncMock(spec=AsyncCerbosClient)
         mock_client_class.return_value = mock_client_instance
 
@@ -401,12 +408,14 @@ class TestWarmUpBehavior:
             principal_builder=_principal_builder,
         )
 
-        await middleware.warm_up()
+        first_client = await middleware._ensure_client()
         mock_client_class.assert_called_once_with("localhost:3593", tls_verify=False)
-        assert mock_client_instance.server_info.await_count == 1
+        assert first_client is mock_client_instance
+        assert mock_client_instance.server_info.await_count == 0
 
-        client = await middleware._ensure_client()
-        assert client is mock_client_instance
+        second_client = await middleware._ensure_client()
+        assert second_client is mock_client_instance
+        assert mock_client_class.call_count == 1
 
     @pytest.mark.asyncio
     @patch("cerbos_fastmcp.middleware.AsyncCerbosClient")
