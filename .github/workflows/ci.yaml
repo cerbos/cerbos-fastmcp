@@ -20,7 +20,7 @@ jobs:
           python-version: "3.13"
 
       - name: Setup Cerbos
-        uses: cerbos/cerbos-setup-action@509a040e83a81b1095ff4ce1cbda72d62af1f75c # v1
+        uses: cerbos/cerbos-setup-action@53d0a0d03111685bd355b2be6d75a2d0948c22de # v1
 
       - name: Install uv
         uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7
